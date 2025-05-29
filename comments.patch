@@ -1,0 +1,144 @@
+diff --git a/main.py b/main.py
+index cbf1d4c..518b23f 100644
+--- a/main.py
++++ b/main.py
+@@ -1,6 +1,7 @@
+ from typing import Any, Protocol
+ 
+ class RoutingModel(Protocol):
++    # Note: avoid spaces/tabs at the end of lines, your IDE probably has an autoformat feature to take care of the problem
+     def get_out_edge(self, state): 
+         pass 
+ 
+@@ -8,15 +9,19 @@ class RoutingModel(Protocol):
+         pass
+ 
+ class SkippingRoutingState:
++    # Note: consider using a dataclass: https://docs.python.org/3/library/dataclasses.html
+     def __init__(self, in_edge: int, current_node: str, out_edges: list[int]) -> None:
+         self.in_edge = in_edge
+         self.current_node = current_node
+         self.out_edges = out_edges
+ 
+ class SkippingRouting:
+-    def get_out_edge(self, state: SkippingRoutingState): 
++    # Note: this is where your implementation of the skipping routing should be
++    def get_out_edge(self, state: SkippingRoutingState):
++        # Hint: provide the chosen out-edge by selecting the first non failed edge in `state`
+         pass 
+     def get_direct_previous_states(self, state) -> list[Any] | None:
++        # Note: why do you need `None`? Don't forget that an empty list is also a possible return value.
+         pass
+ 
+ class CombinatorialRoutingState:
+@@ -29,10 +34,22 @@ class CombinatorialRouting:
+         pass
+ 
+ class Graph:
++    # Note: This is technicly (almost) correct, but very impractical.
++    # - One must build a complete graph with a forced structure before
++    #   creating a Graph object. Consider adding methods to extend an empty graph.
++    #   E.g., add_edge, add_node, ...
++    # - There is no way of ensuring consistency. E.g., what happens if someone
++    #   use edge endpoints that are not present in `nodes`?
++    # - Consider adding other helper functions you can rely on later.
++    #   E.g., get_edges_form(v), get_endpoins_of(e), ... be creative :)
+     def __init__(self, nodes: list[str], edges: list[int], mapping: dict[int, tuple[str, str]], failed_links: list[int]) -> None:
+         self.nodes = nodes
+         self.edges = edges 
+         self.mapping = mapping
++        # Note: The whoule project aims to list possible failure
++        # scenarios, so it shouldn't be required as input.
++        # Hint: consider adding a `failed_links` parameter to
++        # RoutingModel.get_out_edge
+         self.failed_links = failed_links
+ 
+     def get_nodes(self) -> list[str]:
+@@ -56,10 +73,14 @@ class Network:
+         pass 
+     
+ def main() -> None:
+-
++    # Note: in general, try to avoid function-in-function definitions
++    # unless you have a very good reason to do so. It has a big cost
++    # in terms of readibility and testability.
++    # Note: Why are these functions here? Why not put them in the relevant classes?
+     def skipping_routing_next_edge(in_edge, current_node, out_edges):
++        # Note: the next line is always false
+         if failed_links not in out_edges:
+-            pass 
++            pass
+ 
+     def get_out_edges_for(node):
+         pass 
+diff --git a/test.py b/test.py
+index 5f85f9a..13debf8 100644
+--- a/test.py
++++ b/test.py
+@@ -1,26 +1,37 @@
++# Note: Hmmm... How can a test avoid importing the method/class/module/... ?
+ def main() -> None:
+     def skipping_routing_next_edge(in_edge, out_edges):
++        # Note: Shouldn't this be in the other file?
+         if in_edge != None:
++            # Note: why is this neccessary? What is the reason to modify the input?
+             out_edges.remove(in_edge)
+         for out_edge in out_edges:
+             if out_edge not in failed_links:
+                 return out_edge
++        # Note: If all the edges inthe preflist are failed, the packet is dropped. Consider returning None.
+         return in_edge
+ 
+     def get_out_edges_for_current_node(in_edge, current_node):
++        # Note: remove dead code, use git if you think you might need it later
++
+         # implementation without using preference list, resulting in loops 
+         # edges = []
+         # for edge, node_list in mapping.items():
+         #     if current_node in node_list:
+         #         edges.append(edge)
+         # return edges
++
+         edges = pref_lsit.get(current_node)
++        # Note: why are the next lines neccessary? (btw they modify
++        # the contents of `pref_list` which shouldn't happen)
+         if in_edge != None and edges != None:
+             edges.remove(in_edge)
+             edges.insert(-1, in_edge)
+         return edges
+     
+     def get_current_node_based_on_incoming_edge(in_edge, current_node):
++        # Note: the current node is part of the input... why not:
++        # return current_node
+         for edge, node_list in mapping.items():
+             if in_edge == edge:
+                 for node in node_list:
+@@ -28,6 +39,8 @@ def main() -> None:
+                         return node
+ 
+     def get_path_to(source, destination):
++        # Note: what happens if the packet can not be delivered?
++        # Note: why is this function neccessary?
+         path = [[None, source]]
+         in_edge = None
+         current_node = source 
+@@ -44,6 +57,8 @@ def main() -> None:
+ 
+     nodes = ["s", "v1", "v2", "v3", "v4", "d"]
+     edges= [0,1,2,3,4,5,6]
++    # Note: Consider a more descriptive variable name. Every map is a
++    # mapping...
+     mapping = {
+         0 : ["s", "v1"],
+         1 : ["s", "v3"],
+@@ -52,7 +67,9 @@ def main() -> None:
+         4 : ["v2", "v4"],
+         5 : ["v2", "d"],
+         6 : ["v4", "d"]
+-    }   
++    }
++    # Note: Skipping routing uses preflists for each possible
++    # inedge-node combination.
+     pref_lsit = {
+         "s" : [1, 0],
+         "v1" : [2, 0], 
