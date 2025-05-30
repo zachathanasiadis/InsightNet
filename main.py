@@ -51,7 +51,7 @@ class RoutingModel(Protocol):
     def get_out_edge(self, state) -> int | None:
         raise NotImplementedError
 
-    def get_direct_previous_states(self, state) -> list[Any]:
+    def get_direct_previous_states(self, graph, state) -> list[Any]:
         raise NotImplementedError
 
 # dataclasses are not hashable by design, unsafe_hash is a workaround. Otherwise dataclass should become frozen (immutable)
@@ -74,15 +74,15 @@ class SkippingRouting:
             if node not in self.failed_edges:
                 return node
         return None
-    def get_direct_previous_states(self,state: SkippingRoutingState) -> list[Any]:
+    def get_direct_previous_states(self, graph: Graph, state: SkippingRoutingState) -> list[Any]:
         # DONE Note: why do you need `None`? Don't forget that an empty list is also a possible return value.
         previous_states= []
-        nodes_connected_to_edge= Graph().get_nodes_from(state.in_edge)
+        nodes_connected_to_edge= graph.get_nodes_from(state.in_edge)
         previous_node = None
         for node in nodes_connected_to_edge:
             if node != state.current_node:
                 previous_node = node
-        edges_connected_to_previous_node = Graph().get_edges_from(previous_node)
+        edges_connected_to_previous_node = graph.get_edges_from(previous_node)
         for edges in edges_connected_to_previous_node:
             previous_states.append((edges,previous_node))
         return previous_states
@@ -152,7 +152,7 @@ def main() -> None:
     skipping_routing.add_routing_table(state, routing_table[(state.in_edge,state.current_node)])
     print(skipping_routing.routing_table)
     print(skipping_routing.get_out_edge(state))
-    print(skipping_routing.get_direct_previous_states(state))
+    print(skipping_routing.get_direct_previous_states(graph, state))
 
     network = Network(graph, skipping_routing)
 
