@@ -84,7 +84,8 @@ class SkippingRouting:
                 previous_node = node
         edges_connected_to_previous_node = graph.get_edges_from(previous_node)
         for edges in edges_connected_to_previous_node:
-            previous_states.append((edges,previous_node))
+            if edges != state.in_edge:
+                previous_states.append((edges,previous_node))
         return previous_states
 
     def add_routing_table(self, state: SkippingRoutingState, routing_table_of_node: list[int]):
@@ -147,7 +148,7 @@ def main() -> None:
         (6, "d") : [5, 6]
     }
 
-    state = SkippingRoutingState(0, "s")
+    state = SkippingRoutingState(4, "v4")
     skipping_routing = SkippingRouting()
     skipping_routing.add_routing_table(state, routing_table[(state.in_edge,state.current_node)])
     print(skipping_routing.routing_table)
