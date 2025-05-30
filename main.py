@@ -1,44 +1,6 @@
 from typing import Any, Protocol
 from dataclasses import dataclass
 
-class RoutingModel(Protocol):
-    def get_out_edge(self, state):
-        pass
-
-    def get_direct_previous_states(self, state) -> list[Any]:
-        raise NotImplementedError
-
-@dataclass
-class SkippingRoutingState:
-    in_edge: int
-    current_node: str
-
-class SkippingRouting:
-    def __init__(self) -> None:
-    # dicitonary that maps skippingroutingstate to preference list of out_edges
-        self.routing_table: dict[SkippingRoutingState,list[int]]
-        self.failed_edges: list[int]
-
-    # Note: this is where your implementation of the skipping routing should be
-    def get_out_edge(self, state: SkippingRoutingState):
-        # Hint: provide the chosen out-edge by selecting the first non failed edge in `state`
-        pass
-    def get_direct_previous_states(self, state) -> list[Any]:
-        # DONE Note: why do you need `None`? Don't forget that an empty list is also a possible return value.
-        raise NotImplementedError
-
-    def add_routing_table(self):
-        return
-
-class CombinatorialRoutingState:
-    pass
-
-class CombinatorialRouting:
-    def get_out_edge(self, state):
-        pass
-    def get_direct_previous_states(self, state) -> list[Any] | None:
-        pass
-
 class Graph:
     # Note: This is technicly (almost) correct, but very impractical.
     # - One must build a complete graph with a forced structure before
@@ -85,6 +47,58 @@ class Graph:
     def add_edge_to_node_mapping(self, edge_name, first_node, second_node):
         self.edge_to_node_mapping[edge_name] = (first_node, second_node)
 
+class RoutingModel(Protocol):
+    def get_out_edge(self, state) -> int | None:
+        raise NotImplementedError
+
+    def get_direct_previous_states(self, state) -> list[Any]:
+        raise NotImplementedError
+
+# dataclasses are not hashable by design, unsafe_hash is a workaround. Otherwise dataclass should become frozen (immutable)
+# which doesn't fit our use case
+@dataclass(unsafe_hash=True)
+class SkippingRoutingState:
+    in_edge: int | None
+    current_node: str
+
+class SkippingRouting:
+    def __init__(self, routing_table: dict[SkippingRoutingState,list[int]] = {}, failed_edges: list[int] =[]) -> None:
+    # dicitonary that maps skippingroutingstate to preference list of out_edges
+        self.routing_table: dict[SkippingRoutingState,list[int]] = routing_table
+        self.failed_edges: list[int] = failed_edges
+
+    # Note: this is where your implementation of the skipping routing should be
+    def get_out_edge(self, state: SkippingRoutingState) -> int | None:
+        # Hint: provide the chosen out-edge by selecting the first non failed edge in `state`
+        for node in self.routing_table[state]:
+            if node not in self.failed_edges:
+                return node
+        return None
+    def get_direct_previous_states(self,state: SkippingRoutingState) -> list[Any]:
+        # DONE Note: why do you need `None`? Don't forget that an empty list is also a possible return value.
+        previous_states= []
+        nodes_connected_to_edge= Graph().get_nodes_from(state.in_edge)
+        previous_node = None
+        for node in nodes_connected_to_edge:
+            if node != state.current_node:
+                previous_node = node
+        edges_connected_to_previous_node = Graph().get_edges_from(previous_node)
+        for edges in edges_connected_to_previous_node:
+            previous_states.append((edges,previous_node))
+        return previous_states
+
+    def add_routing_table(self, state: SkippingRoutingState, routing_table_of_node: list[int]):
+        self.routing_table[state] = routing_table_of_node
+
+class CombinatorialRoutingState:
+    pass
+
+class CombinatorialRouting:
+    def get_out_edge(self, state) -> int | None:
+        pass
+    def get_direct_previous_states(self, state) -> list[Any] | None:
+        pass
+
 class Network:
     def __init__(self, graph: Graph, routing_model: RoutingModel) -> None:
         self.graph: Graph = graph
@@ -113,6 +127,34 @@ def main() -> None:
         graph.add_edge(edge)
     for edge, node_tuple in edge_to_node_mapping.items():
         graph.add_edge_to_node_mapping(edge, node_tuple[0], node_tuple[1])
+
+    routing_table = {
+        (None, "s") : [1, 0],
+        (0, "s") : [1, 0],
+        (None, "v1") : [2, 0],
+        (0, "v1") : [2, 0],
+        (2, "v1") : [0, 2],
+        (None, "v2") : [5, 4, 2],
+        (4, "v2") : [5, 2, 4],
+        (2, "v2") : [5, 4, 2],
+        (None, "v3") : [3, 1],
+        (3, "v3") : [1, 3],
+        (None, "v4") : [6, 3, 4],
+        (4, "v4") : [6, 3, 4],
+        (3, "v4") : [6, 4, 3],
+        (6, "v4") : [3, 4, 6],
+        (None, "d") : [5, 6],
+        (6, "d") : [5, 6]
+    }
+
+    state = SkippingRoutingState(0, "s")
+    skipping_routing = SkippingRouting()
+    skipping_routing.add_routing_table(state, routing_table[(state.in_edge,state.current_node)])
+    print(skipping_routing.routing_table)
+    print(skipping_routing.get_out_edge(state))
+    print(skipping_routing.get_direct_previous_states(state))
+
+    network = Network(graph, skipping_routing)
 
 if __name__ == "__main__":
     main()
