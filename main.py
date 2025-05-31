@@ -151,9 +151,9 @@ def main() -> None:
     state = SkippingRoutingState(4, "v4")
     skipping_routing = SkippingRouting()
     skipping_routing.add_routing_table(state, routing_table[(state.in_edge,state.current_node)])
-    print(skipping_routing.routing_table)
-    print(skipping_routing.get_out_edge(state))
     print(skipping_routing.get_direct_previous_states(graph, state))
+    # for state with in_edge= 4 and current_node= "v4" the direct previous states
+    # are [(2, 'v2'), (5, 'v2')]
 
     network = Network(graph, skipping_routing)
 
