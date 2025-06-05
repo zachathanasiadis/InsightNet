@@ -65,6 +65,10 @@ class SkippingRouting:
     ) -> None:
         self.routing_table: dict[SkippingRoutingState, list[int]] = routing_table
 
+    def is_valid_state(self,state: SkippingRoutingState) -> None:
+        if state not in self.routing_table:
+            raise Exception("Invalid state")
+
     def get_out_edge(
         self, state: SkippingRoutingState, failed_edges: list[int]
     ) -> int | None:
@@ -132,15 +136,15 @@ class Network:
 
 
 def main() -> None:
-    nodes = ["s", "v1", "v2", "v3", "v4", "d"]
+    nodes = ["v0", "v1", "v2", "v3", "v4", "v5"]
     edge_to_node_mapping = {
         0: ("v1", "v1"),
-        1: ("s", "v3"),
+        1: ("v0", "v3"),
         2: ("v1", "v2"),
         3: ("v3", "v4"),
         4: ("v2", "v4"),
-        5: ("v2", "d"),
-        6: ("v4", "d"),
+        5: ("v2", "v5"),
+        6: ("v4", "v5"),
     }
 
     graph = Graph()
@@ -176,6 +180,7 @@ def main() -> None:
             graph,
             routing_table__pref_list,
         )
+    skipping_routing.is_valid_state(state)
     print(skipping_routing.get_direct_previous_states(graph, state))
     # Zach: for state with in_edge= 4 and current_node= "v4" the direct previous states
     # are [(None, "v2"), (2, "v2"), (4, "v2")]
