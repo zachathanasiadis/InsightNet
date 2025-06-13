@@ -1,0 +1,30 @@
+{
+  "nodes": ["v0", "v1", "v2", "v3", "v4", "v5"],
+  "edge_to_node_mapping": [
+    { "edge": 0, "nodes": ["v0", "v1"] },
+    { "edge": 1, "nodes": ["v0", "v3"] },
+    { "edge": 2, "nodes": ["v1", "v2"] },
+    { "edge": 3, "nodes": ["v3", "v4"] },
+    { "edge": 4, "nodes": ["v2", "v4"] },
+    { "edge": 5, "nodes": ["v2", "v5"] },
+    { "edge": 6, "nodes": ["v4", "v5"] }
+  ],
+  "routing_table": [
+    { "in_edge": null, "node": "v0", "out_edges": [1, 0] },
+    { "in_edge": 0, "node": "v0", "out_edges": [1, 0] },
+    { "in_edge": null, "node": "v1", "out_edges": [2, 0] },
+    { "in_edge": 0, "node": "v1", "out_edges": [2, 0] },
+    { "in_edge": 2, "node": "v1", "out_edges": [0, 2] },
+    { "in_edge": null, "node": "v2", "out_edges": [5, 4, 2] },
+    { "in_edge": 4, "node": "v2", "out_edges": [5, 2, 4] },
+    { "in_edge": 2, "node": "v2", "out_edges": [5, 4, 2] },
+    { "in_edge": null, "node": "v3", "out_edges": [3, 1] },
+    { "in_edge": 3, "node": "v3", "out_edges": [1, 3] },
+    { "in_edge": null, "node": "v4", "out_edges": [6, 3, 4] },
+    { "in_edge": 4, "node": "v4", "out_edges": [6, 3, 4] },
+    { "in_edge": 3, "node": "v4", "out_edges": [6, 4, 3] },
+    { "in_edge": 6, "node": "v4", "out_edges": [3, 4, 6] },
+    { "in_edge": null, "node": "v5", "out_edges": [5, 6] },
+    { "in_edge": 6, "node": "v5", "out_edges": [5, 6] }
+  ]
+}
