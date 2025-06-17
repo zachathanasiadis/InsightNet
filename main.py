@@ -56,7 +56,7 @@ class SkippingRouting:
         self.routing_table: dict[SkippingRoutingState,
                                  list[int]] = routing_table
 
-    def get_out_edge(self, state: SkippingRoutingState, failed_edges: list[int]) -> int | None:
+    def get_out_edge(self, state: SkippingRoutingState, failed_edges: list[int] = []) -> int | None:
         for node in self.routing_table[state]:
             if node not in failed_edges:
                 return node
@@ -85,6 +85,9 @@ class SkippingRouting:
         return previous_states
 
     def update_routing_table(self, routing_table: dict[SkippingRoutingState, list[int]]) -> None:
+        for routing_table_state, routing_table__pref_list in routing_table.items():
+            self.check_validity_of_routing_table(
+                routing_table_state, self.graph, routing_table__pref_list)
         self.routing_table = routing_table
 
     def check_validity_of_routing_table(self, state: SkippingRoutingState, graph: Graph, routing_table_of_node: list[int]) -> None:
@@ -94,8 +97,6 @@ class SkippingRouting:
             raise Exception("State node not in Graph")
         if (state.in_edge is not None and state.current_node not in graph.get_endpoints_of_edge(state.in_edge)):
             raise Exception("State node not connected to given state in-edge")
-        if (state.in_edge is not None and state.in_edge not in graph.get_edges_from_node(state.current_node)):
-            raise Exception("State in-edge not connected to given state node")
         for edge in routing_table_of_node:
             if edge not in graph.get_edges():
                 raise Exception("Routing table edge not in Graph")
@@ -117,22 +118,24 @@ class Network:
         self.graph: Graph = graph
         self.routing_model: RoutingModel = routing_model
 
-    def get_all_paths_to(self, state) -> list[list[Any]]:
-        list_of_paths = []
-        path = self.routing_model.get_direct_previous_states(
-            state)  # direct_previous_states
-        list_of_paths.append(path)
-        for previous_state in path:
-            list_of_paths.append(
-                self.routing_model.get_direct_previous_states(previous_state))
-        return list_of_paths
+    def get_all_paths_to(self, state, visited=[], paths=[]) -> list[list[Any]]:
+        if state not in visited:
+            direct_previous_states = self.routing_model.get_direct_previous_states(
+                state)
+            visited.append(state)
+            if state.in_edge is None:
+                paths.append(visited)
+            for direct_previous_state in direct_previous_states:
+                self.get_all_paths_to(direct_previous_state, visited, paths)
+
+        return paths 
 
     # recursive function will end when in-edge is None
     # will have to check for loops, take into account nodes traveled
 
 
 def main() -> None:
-    json_path = "graphs/graph.json"
+    json_path = "graphs/graph3.json"
     with open(json_path, 'r') as file:
         loaded_graph = json.load(file)
 
@@ -146,17 +149,14 @@ def main() -> None:
     for edge, node_tuple in edge_to_node_mapping.items():
         graph.add_edge(edge, node_tuple[0], node_tuple[1])
 
-    routing_table = {(entry["in_edge"], entry["node"]): entry["out_edges"]
+    routing_table = {SkippingRoutingState(entry["in_edge"], entry["node"]): entry["out_edges"]
                      for entry in loaded_graph["routing_table"]}
-    state = SkippingRoutingState(4, "v4")
+
+    state = SkippingRoutingState(1, "v1")
     skipping_routing = SkippingRouting(graph)
-    restructured_routing_table = {}
-    for routing_table_state, routing_table__pref_list in routing_table.items():
-        skipping_routing.check_validity_of_routing_table(SkippingRoutingState(
-            routing_table_state[0], routing_table_state[1]), graph, routing_table__pref_list)
-        restructured_routing_table[SkippingRoutingState(
-            routing_table_state[0], routing_table_state[1])] = routing_table__pref_list
-    skipping_routing.update_routing_table(restructured_routing_table)
+
+    skipping_routing.update_routing_table(routing_table)
+
     print(skipping_routing.get_direct_previous_states(state))
 
     network = Network(graph, skipping_routing)
