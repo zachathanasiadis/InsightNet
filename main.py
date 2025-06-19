@@ -118,17 +118,26 @@ class Network:
         self.graph: Graph = graph
         self.routing_model: RoutingModel = routing_model
 
-    def get_all_paths_to(self, state, visited=[], paths=[]) -> list[list[Any]]:
-        if state not in visited:
+    def get_all_paths_to(self, state) -> list[list[Any]]:
+
+        paths = []
+
+        def get_all_paths_to_recursive(state, path=[]):
+            if state in path:
+                return
+        
+            path = path + [state]
+            if state.in_edge is None:
+                paths.append(path)
+                return
             direct_previous_states = self.routing_model.get_direct_previous_states(
                 state)
-            visited.append(state)
-            if state.in_edge is None:
-                paths.append(visited)
             for direct_previous_state in direct_previous_states:
-                self.get_all_paths_to(direct_previous_state, visited, paths)
+                get_all_paths_to_recursive(
+                    direct_previous_state, path)
 
-        return paths 
+        get_all_paths_to_recursive(state)
+        return paths
 
     # recursive function will end when in-edge is None
     # will have to check for loops, take into account nodes traveled
@@ -160,7 +169,8 @@ def main() -> None:
     print(skipping_routing.get_direct_previous_states(state))
 
     network = Network(graph, skipping_routing)
-    print(network.get_all_paths_to(state))
+    paths = network.get_all_paths_to(state)
+    print(paths)
 
 
 if __name__ == "__main__":
