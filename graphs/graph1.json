@@ -1,4 +1,5 @@
 {
+  "routing_model": "Skipping Routing",
   "nodes": ["v0", "v1", "v2", "v3", "v4", "v5"],
   "edge_to_node_mapping": [
     { "edge": 0, "nodes": ["v0", "v1"] },
