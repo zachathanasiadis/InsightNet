@@ -1,6 +1,7 @@
 from typing import Any, Protocol
 from dataclasses import dataclass
 import json
+import argparse
 
 
 @dataclass(frozen=True)
@@ -48,6 +49,9 @@ class RoutingModel(Protocol):
 
     def get_direct_previous_states(self, state) -> list[Any]:
         raise NotImplementedError
+
+    def infer_edge_states_from_transition(self, s1, s2):
+        pass
 
 
 class SkippingRouting:
@@ -107,6 +111,9 @@ class SkippingRouting:
                 raise Exception(
                     "Routing table edge not connected to state node")
 
+    def infer_edge_states_from_transition(self, s1: SkippingRoutingState, s2: SkippingRoutingState):
+        pass
+
 
 class CombinatorialRouting:
     def get_out_edge(self, state) -> int | None:
@@ -115,13 +122,22 @@ class CombinatorialRouting:
     def get_direct_previous_states(self, state) -> list[Any] | None:
         pass
 
+    def update_routing_table(self, routing_table: dict[SkippingRoutingState, list[int]]) -> None:
+        pass
+
+    def check_validity_of_routing_table(self, routing_table: dict[CombinatorialRoutingState, list[int]]) -> None:
+        pass
+
+    def infer_edge_states_from_transition(self, s1: CombinatorialRoutingState, s2: CombinatorialRoutingState):
+        pass
+
 
 class Network:
     def __init__(self, graph: Graph, routing_model: RoutingModel) -> None:
         self.graph: Graph = graph
         self.routing_model: RoutingModel = routing_model
 
-    def get_all_paths_to(self, state) -> list[list[Any]]:
+    def get_all_paths_to(self, state) -> list[list[Any]]:  # Look into yield
         paths = []
 
         def get_all_paths_to_recursive(state, path=None):
@@ -143,8 +159,24 @@ class Network:
         get_all_paths_to_recursive(state)
         return paths
 
+    def infer_edges_for_every_path_from_given_state(self, state: SkippingRoutingState):
+        paths = self.get_all_paths_to(state)
+        for path in paths:
+            required_alive_edges = []
+            required_failed_edges = []
+            for i in range(len(path)-1):
+                s1 = path[i]
+                s2 = path[i+1]
+                self.routing_model.infer_edge_states_from_transition(s1, s2)
 
-def json_parsing(json_path: str):
+        return
+# create a function in the skippping routing class called infer_edge_states_from_transition ( two state inputs)
+#  -> required alive edges and required failed edges
+# create a function in the network class that will take the paths as input and for every scenario aggregate
+# required alive and failed edges
+
+
+def parse_json(json_path: str):
     with open(json_path, 'r') as file:
         loaded_graph = json.load(file)
 
@@ -173,8 +205,11 @@ def main() -> None:
     # - Very good start.
     # - Create a helper function that gets a file name and returns the Network, Graph and RoutingModel objects.
     # - Be careful with the design. How will you support JSON parsing when youhave multiple possible routing models implemented?
-    json_path = "graphs/graph3.json"
-    graph, skipping_routing, network = json_parsing(json_path)
+    parser = argparse.ArgumentParser(description="Global insight tool for local routing models")
+    parser.add_argument("-i", "--input", nargs=1, required=True, type=str, help="Add a JSON file as input")
+    args = parser.parse_args()
+    json_path = args.input[0]
+    graph, skipping_routing, network = parse_json(json_path)
 
     state = SkippingRoutingState(1, "v1")
     paths = network.get_all_paths_to(state)
