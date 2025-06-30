@@ -15,10 +15,12 @@ class CombinatorialRoutingState:
 
 
 class Graph:
-    def __init__(self, nodes: list[str] = [], edges: list[int] = [], edge_to_node_mapping: dict[int, tuple[str, str]] = {}) -> None:
-        self.nodes = nodes
-        self.edges = edges
-        self.edge_to_node_mapping = edge_to_node_mapping
+    def __init__(self, nodes: list[str] | None = None, edges: list[int] | None = None, edge_to_node_mapping: dict[int, tuple[str, str]] | None = None) -> None:
+        # Create new containers for every instance
+        self.nodes: list[str] = list(nodes) if nodes is not None else []
+        self.edges: list[int] = list(edges) if edges is not None else []
+        self.edge_to_node_mapping: dict[int, tuple[str, str]] = (
+            dict(edge_to_node_mapping) if edge_to_node_mapping is not None else {})
 
     def get_nodes(self) -> list[str]:
         return self.nodes
@@ -162,24 +164,36 @@ class Network:
     def infer_edges_for_every_path_from_given_state(self, state: SkippingRoutingState):
         paths = self.get_all_paths_to(state)
         for path in paths:
-            required_alive_edges = []
-            required_failed_edges = []
+            required_edges = {
+                "required_alive_edges": [],
+                "required_failed_edges": []
+            }
             for i in range(len(path)-1):
                 s1 = path[i]
                 s2 = path[i+1]
                 self.routing_model.infer_edge_states_from_transition(s1, s2)
 
         return
-# create a function in the skippping routing class called infer_edge_states_from_transition ( two state inputs)
-#  -> required alive edges and required failed edges
-# create a function in the network class that will take the paths as input and for every scenario aggregate
-# required alive and failed edges
+
+    # TODO create a function in the skippping routing class called infer_edge_states_from_transition ( two state inputs)
+    #  -> required alive edges and required failed edges
+    # create a function in the network class that will take the paths as input and for every scenario aggregate
+    # required alive and failed edges
+
+
+def parse_skipping_routing(graph: Graph, loaded_graph: dict[str, Any]):
+    routing_table = {SkippingRoutingState(entry["in_edge"], entry["node"]): entry["out_edges"]
+                     for entry in loaded_graph["routing_table"]}
+    skipping_routing = SkippingRouting(graph)
+    skipping_routing.update_routing_table(routing_table)
+
+    network = Network(graph, skipping_routing)
+    return graph, skipping_routing, network
 
 
 def parse_json(json_path: str):
     with open(json_path, 'r') as file:
         loaded_graph = json.load(file)
-
     nodes = loaded_graph["nodes"]
     edge_to_node_mapping = {entry["edge"]: entry["nodes"] for entry in loaded_graph["edge_to_node_mapping"]}
 
@@ -188,23 +202,12 @@ def parse_json(json_path: str):
         graph.add_node(node)
     for edge, endpoints in edge_to_node_mapping.items():
         graph.add_edge(edge, endpoints[0], endpoints[1])
-
     if loaded_graph["routing_model"] == "Skipping Routing":
-        routing_table = {SkippingRoutingState(entry["in_edge"], entry["node"]): entry["out_edges"]
-                         for entry in loaded_graph["routing_table"]}
-
-        skipping_routing = SkippingRouting(graph)
-        skipping_routing.update_routing_table(routing_table)
-
-        network = Network(graph, skipping_routing)
-        return graph, skipping_routing, network
+        return parse_skipping_routing(graph, loaded_graph)
     raise Exception("Invalid Routing Model")
 
 
 def main() -> None:
-    # - Very good start.
-    # - Create a helper function that gets a file name and returns the Network, Graph and RoutingModel objects.
-    # - Be careful with the design. How will you support JSON parsing when youhave multiple possible routing models implemented?
     parser = argparse.ArgumentParser(description="Global insight tool for local routing models")
     parser.add_argument("-i", "--input", nargs=1, required=True, type=str, help="Add a JSON file as input")
     args = parser.parse_args()
