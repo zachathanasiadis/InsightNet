@@ -181,7 +181,10 @@ class Network:
     # required alive and failed edges
 
 
-def parse_skipping_routing(graph: Graph, loaded_graph: dict[str, Any]):
+model_parsing = dict()
+
+
+def parse_skipping_routing(graph: Graph, loaded_graph: dict[str, Any]) -> tuple[Graph, SkippingRouting, Network]:
     routing_table = {SkippingRoutingState(entry["in_edge"], entry["node"]): entry["out_edges"]
                      for entry in loaded_graph["routing_table"]}
     skipping_routing = SkippingRouting(graph)
@@ -189,6 +192,9 @@ def parse_skipping_routing(graph: Graph, loaded_graph: dict[str, Any]):
 
     network = Network(graph, skipping_routing)
     return graph, skipping_routing, network
+
+
+model_parsing["Skipping Routing"] = parse_skipping_routing
 
 
 def parse_json(json_path: str):
@@ -202,9 +208,10 @@ def parse_json(json_path: str):
         graph.add_node(node)
     for edge, endpoints in edge_to_node_mapping.items():
         graph.add_edge(edge, endpoints[0], endpoints[1])
-    if loaded_graph["routing_model"] == "Skipping Routing":
-        return parse_skipping_routing(graph, loaded_graph)
-    raise Exception("Invalid Routing Model")
+    try:
+        return model_parsing[loaded_graph["routing_model"]](graph, loaded_graph)
+    except Exception:
+        raise Exception("Invalid Routing Model")
 
 
 def main() -> None:
