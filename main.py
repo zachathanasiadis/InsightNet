@@ -16,11 +16,10 @@ class CombinatorialRoutingState:
 
 class Graph:
     def __init__(self, nodes: list[str] | None = None, edges: list[int] | None = None, edge_to_node_mapping: dict[int, tuple[str, str]] | None = None) -> None:
-        # Create new containers for every instance
-        self.nodes: list[str] = list(nodes) if nodes is not None else []
-        self.edges: list[int] = list(edges) if edges is not None else []
-        self.edge_to_node_mapping: dict[int, tuple[str, str]] = (
-            dict(edge_to_node_mapping) if edge_to_node_mapping is not None else {})
+        self.nodes: list[str] = nodes if nodes is not None else []
+        self.edges: list[int] = edges if edges is not None else []
+        self.edge_to_node_mapping: dict[int, tuple[str, str]
+                                        ] = edge_to_node_mapping if edge_to_node_mapping is not None else {}
 
     def get_nodes(self) -> list[str]:
         return self.nodes
@@ -52,13 +51,13 @@ class RoutingModel(Protocol):
     def get_direct_previous_states(self, state) -> list[Any]:
         raise NotImplementedError
 
-    def infer_edge_states_from_transition(self, s1, s2):
+    def infer_edge_states_from_transition(self, s1, s2, required_edges):
         pass
 
 
 class SkippingRouting:
     def __init__(self, graph: Graph, routing_table: dict[SkippingRoutingState, list[int]] = {}) -> None:
-        self.graph = graph
+        self.graph: Graph = graph
         self.check_validity_of_routing_table(routing_table)
         self.routing_table: dict[SkippingRoutingState, list[int]] = routing_table
 
@@ -113,8 +112,13 @@ class SkippingRouting:
                 raise Exception(
                     "Routing table edge not connected to state node")
 
-    def infer_edge_states_from_transition(self, s1: SkippingRoutingState, s2: SkippingRoutingState):
-        pass
+    def infer_edge_states_from_transition(self, s1: SkippingRoutingState, s2: SkippingRoutingState, required_edges: dict[str, Any]):
+        for edge in self.routing_table[s1]:
+            if edge == s2.in_edge:
+                required_edges["required_alive_edges"].add(edge)
+                return  # Do we want to return or do we want to go through the whole preference list?
+            else:
+                required_edges["required_failed_edges"].add(edge)
 
 
 class CombinatorialRouting:
@@ -164,16 +168,26 @@ class Network:
     def infer_edges_for_every_path_from_given_state(self, state: SkippingRoutingState):
         paths = self.get_all_paths_to(state)
         for path in paths:
+            path.reverse()
             required_edges = {
-                "required_alive_edges": [],
-                "required_failed_edges": []
+                "path": path,
+                "required_alive_edges": set(),
+                "required_failed_edges": set()
             }
             for i in range(len(path)-1):
-                s1 = path[i]
-                s2 = path[i+1]
-                self.routing_model.infer_edge_states_from_transition(s1, s2)
-
-        return
+                self.routing_model.infer_edge_states_from_transition(path[i], path[i+1], required_edges)
+            print(required_edges)
+            # For graph3 it prints:
+            # {'path': [SkippingRoutingState(in_edge=None, current_node='v2'), SkippingRoutingState(
+            #     in_edge=1, current_node='v1')], 'required_alive_edges': {1}, 'required_failed_edges': {2}}
+            # {'path': [SkippingRoutingState(in_edge=None, current_node='v1'), SkippingRoutingState(in_edge=1, current_node='v2'), SkippingRoutingState(
+            #     in_edge=1, current_node='v1')], 'required_alive_edges': {1}, 'required_failed_edges': {2}}
+            # {'path': [SkippingRoutingState(in_edge=None, current_node='v3'), SkippingRoutingState(in_edge=2, current_node='v2'), SkippingRoutingState(
+            #     in_edge=1, current_node='v1')], 'required_alive_edges': {1, 2}, 'required_failed_edges': set()}
+            # {'path': [SkippingRoutingState(in_edge=None, current_node='v2'), SkippingRoutingState(in_edge=2, current_node='v3'), SkippingRoutingState(
+            #     in_edge=2, current_node='v2'), SkippingRoutingState(in_edge=1, current_node='v1')], 'required_alive_edges': {1, 2}, 'required_failed_edges': set()}
+            # {'path': [SkippingRoutingState(in_edge=None, current_node='v1'), SkippingRoutingState(in_edge=1, current_node='v2'), SkippingRoutingState(in_edge=2, current_node='v3'), SkippingRoutingState(
+            #     in_edge=2, current_node='v2'), SkippingRoutingState(in_edge=1, current_node='v1')], 'required_alive_edges': {1, 2}, 'required_failed_edges': set()}
 
     # TODO create a function in the skippping routing class called infer_edge_states_from_transition ( two state inputs)
     #  -> required alive edges and required failed edges
@@ -224,6 +238,7 @@ def main() -> None:
     state = SkippingRoutingState(1, "v1")
     paths = network.get_all_paths_to(state)
     print(paths)
+    network.infer_edges_for_every_path_from_given_state(state)
 
 
 if __name__ == "__main__":
