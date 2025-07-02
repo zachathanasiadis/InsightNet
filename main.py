@@ -1,5 +1,6 @@
 from typing import Any, Protocol
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from itertools import pairwise
 import json
 import argparse
 
@@ -14,12 +15,17 @@ class CombinatorialRoutingState:
     pass
 
 
+@dataclass(frozen=True)
+class RequiredEdges:
+    alive_edges: set[int] = field(default_factory=set)
+    failed_edges: set[int] = field(default_factory=set)
+
+
 class Graph:
     def __init__(self, nodes: list[str] | None = None, edges: list[int] | None = None, edge_to_node_mapping: dict[int, tuple[str, str]] | None = None) -> None:
         self.nodes: list[str] = nodes if nodes is not None else []
         self.edges: list[int] = edges if edges is not None else []
-        self.edge_to_node_mapping: dict[int, tuple[str, str]
-                                        ] = edge_to_node_mapping if edge_to_node_mapping is not None else {}
+        self.edge_to_node_mapping: dict[int, tuple[str, str]] = edge_to_node_mapping if edge_to_node_mapping is not None else {}
 
     def get_nodes(self) -> list[str]:
         return self.nodes
@@ -51,15 +57,17 @@ class RoutingModel(Protocol):
     def get_direct_previous_states(self, state) -> list[Any]:
         raise NotImplementedError
 
+    # TODO add type annotations
     def infer_edge_states_from_transition(self, s1, s2, required_edges):
-        pass
+        raise NotImplementedError
 
 
 class SkippingRouting:
-    def __init__(self, graph: Graph, routing_table: dict[SkippingRoutingState, list[int]] = {}) -> None:
+    def __init__(self, graph: Graph, routing_table: dict[SkippingRoutingState, list[int]] | None = None) -> None:
         self.graph: Graph = graph
-        self.check_validity_of_routing_table(routing_table)
-        self.routing_table: dict[SkippingRoutingState, list[int]] = routing_table
+        if routing_table is not None:
+            self.check_validity_of_routing_table(routing_table)
+        self.routing_table: dict[SkippingRoutingState, list[int]] = routing_table if routing_table is not None else {}
 
     def get_out_edge(self, state: SkippingRoutingState, failed_edges: list[int] | None = None) -> int | None:
         if failed_edges is None:
@@ -109,16 +117,15 @@ class SkippingRouting:
             if edge not in graph.get_edges():
                 raise Exception("Routing table edge not in Graph")
             if edge not in graph.get_edges_from_node(state.current_node):
-                raise Exception(
-                    "Routing table edge not connected to state node")
+                raise Exception("Routing table edge not connected to state node")
 
-    def infer_edge_states_from_transition(self, s1: SkippingRoutingState, s2: SkippingRoutingState, required_edges: dict[str, Any]):
-        for edge in self.routing_table[s1]:
-            if edge == s2.in_edge:
-                required_edges["required_alive_edges"].add(edge)
-                return  # Do we want to return or do we want to go through the whole preference list?
+    def infer_edge_states_from_transition(self, s1: SkippingRoutingState, s2: SkippingRoutingState, required_edges: RequiredEdges):
+        for edge in self.routing_table[s2]:
+            if edge == s1.in_edge:
+                required_edges.alive_edges.add(edge)
+                break
             else:
-                required_edges["required_failed_edges"].add(edge)
+                required_edges.failed_edges.add(edge)
 
 
 class CombinatorialRouting:
@@ -128,7 +135,7 @@ class CombinatorialRouting:
     def get_direct_previous_states(self, state) -> list[Any] | None:
         pass
 
-    def update_routing_table(self, routing_table: dict[SkippingRoutingState, list[int]]) -> None:
+    def update_routing_table(self, routing_table: dict[CombinatorialRoutingState, list[int]]) -> None:
         pass
 
     def check_validity_of_routing_table(self, routing_table: dict[CombinatorialRoutingState, list[int]]) -> None:
@@ -143,9 +150,7 @@ class Network:
         self.graph: Graph = graph
         self.routing_model: RoutingModel = routing_model
 
-    def get_all_paths_to(self, state) -> list[list[Any]]:  # Look into yield
-        paths = []
-
+    def get_all_paths_to(self, state) -> list[list[Any]]:
         def get_all_paths_to_recursive(state, path=None):
             if path is None:
                 path = []
@@ -154,91 +159,72 @@ class Network:
 
             path = path + [state]
             if state.in_edge is None:
-                paths.append(path)
+                yield path
                 return
 
-            direct_previous_states = self.routing_model.get_direct_previous_states(
-                state)
-            for direct_previous_state in direct_previous_states:
-                get_all_paths_to_recursive(direct_previous_state, path)
+            for direct_previous_state in self.routing_model.get_direct_previous_states(state):
+                yield from get_all_paths_to_recursive(direct_previous_state, path)
 
-        get_all_paths_to_recursive(state)
-        return paths
+        return list(get_all_paths_to_recursive(state))
 
     def infer_edges_for_every_path_from_given_state(self, state: SkippingRoutingState):
         paths = self.get_all_paths_to(state)
         for path in paths:
-            path.reverse()
-            required_edges = {
-                "path": path,
-                "required_alive_edges": set(),
-                "required_failed_edges": set()
-            }
-            for i in range(len(path)-1):
-                self.routing_model.infer_edge_states_from_transition(path[i], path[i+1], required_edges)
-            print(required_edges)
-            # For graph3 it prints:
-            # {'path': [SkippingRoutingState(in_edge=None, current_node='v2'), SkippingRoutingState(
-            #     in_edge=1, current_node='v1')], 'required_alive_edges': {1}, 'required_failed_edges': {2}}
-            # {'path': [SkippingRoutingState(in_edge=None, current_node='v1'), SkippingRoutingState(in_edge=1, current_node='v2'), SkippingRoutingState(
-            #     in_edge=1, current_node='v1')], 'required_alive_edges': {1}, 'required_failed_edges': {2}}
-            # {'path': [SkippingRoutingState(in_edge=None, current_node='v3'), SkippingRoutingState(in_edge=2, current_node='v2'), SkippingRoutingState(
-            #     in_edge=1, current_node='v1')], 'required_alive_edges': {1, 2}, 'required_failed_edges': set()}
-            # {'path': [SkippingRoutingState(in_edge=None, current_node='v2'), SkippingRoutingState(in_edge=2, current_node='v3'), SkippingRoutingState(
-            #     in_edge=2, current_node='v2'), SkippingRoutingState(in_edge=1, current_node='v1')], 'required_alive_edges': {1, 2}, 'required_failed_edges': set()}
-            # {'path': [SkippingRoutingState(in_edge=None, current_node='v1'), SkippingRoutingState(in_edge=1, current_node='v2'), SkippingRoutingState(in_edge=2, current_node='v3'), SkippingRoutingState(
-            #     in_edge=2, current_node='v2'), SkippingRoutingState(in_edge=1, current_node='v1')], 'required_alive_edges': {1, 2}, 'required_failed_edges': set()}
-
-    # TODO create a function in the skippping routing class called infer_edge_states_from_transition ( two state inputs)
-    #  -> required alive edges and required failed edges
-    # create a function in the network class that will take the paths as input and for every scenario aggregate
-    # required alive and failed edges
+            required_edges = RequiredEdges()
+            for s1, s2 in pairwise(path):
+                self.routing_model.infer_edge_states_from_transition(s1, s2, required_edges)
+            yield required_edges
 
 
-model_parsing = dict()
+model_parsers = dict()
 
 
-def parse_skipping_routing(graph: Graph, loaded_graph: dict[str, Any]) -> tuple[Graph, SkippingRouting, Network]:
-    routing_table = {SkippingRoutingState(entry["in_edge"], entry["node"]): entry["out_edges"]
-                     for entry in loaded_graph["routing_table"]}
+def register_model_parser(routing_model: str):
+    def wrapper(func):
+        model_parsers[routing_model] = func
+        return func
+    return wrapper
+
+
+@register_model_parser(routing_model="Skipping Routing")
+def parse_skipping_routing(graph: Graph, data: dict[str, Any]) -> SkippingRouting:
+    routing_table = {SkippingRoutingState(entry["in_edge"], entry["node"]): entry["out_edges"] for entry in data["routing_table"]}
     skipping_routing = SkippingRouting(graph)
     skipping_routing.update_routing_table(routing_table)
-
-    network = Network(graph, skipping_routing)
-    return graph, skipping_routing, network
+    return skipping_routing
 
 
-model_parsing["Skipping Routing"] = parse_skipping_routing
-
-
-def parse_json(json_path: str):
-    with open(json_path, 'r') as file:
-        loaded_graph = json.load(file)
-    nodes = loaded_graph["nodes"]
-    edge_to_node_mapping = {entry["edge"]: entry["nodes"] for entry in loaded_graph["edge_to_node_mapping"]}
-
-    graph = Graph()
-    for node in nodes:
-        graph.add_node(node)
-    for edge, endpoints in edge_to_node_mapping.items():
-        graph.add_edge(edge, endpoints[0], endpoints[1])
+def parse_routing_model(graph: Graph, data: dict[str, Any]):
     try:
-        return model_parsing[loaded_graph["routing_model"]](graph, loaded_graph)
-    except Exception:
-        raise Exception("Invalid Routing Model")
+        return model_parsers[data["routing_model"]](graph, data)
+    except Exception as e:
+        raise KeyError(f"Routing model named {e} is invalid")
+
+
+def parse_graph(data: dict[str, Any]):
+    graph = Graph()
+    for node in data["nodes"]:
+        graph.add_node(node)
+    for entry in data["edge_to_node_mapping"]:
+        graph.add_edge(entry["edge"], entry["nodes"][0], entry["nodes"][1])
+    return graph
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Global insight tool for local routing models")
-    parser.add_argument("-i", "--input", nargs=1, required=True, type=str, help="Add a JSON file as input")
+    parser.add_argument("-i", "--input-json", required=True, type=str, help="Add a JSON file as input")
+    parser.add_argument("-e", "--in-edge", required=True, type=int, help="Add in-edge of the state")
+    parser.add_argument("-n", "--current-node", required=True, type=str, help="Add current node of the state")
     args = parser.parse_args()
-    json_path = args.input[0]
-    graph, skipping_routing, network = parse_json(json_path)
+    with open(args.input_json, 'r') as file:
+        data = json.load(file)
+    graph = parse_graph(data)
+    routing_model = parse_routing_model(graph, data)
 
-    state = SkippingRoutingState(1, "v1")
-    paths = network.get_all_paths_to(state)
-    print(paths)
-    network.infer_edges_for_every_path_from_given_state(state)
+    network = Network(graph, routing_model)
+
+    state = SkippingRoutingState(args.in_edge, args.current_node)
+    print(*network.infer_edges_for_every_path_from_given_state(state))
 
 
 if __name__ == "__main__":
