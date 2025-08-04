@@ -1,14 +1,28 @@
-from typing import Any, Protocol
+from typing import Any, Protocol, Generator
 from dataclasses import dataclass, field
 from itertools import pairwise
+from pathlib import Path
 import json
+import csv
 import argparse
+
+
+class State(Protocol):
+    @staticmethod
+    def parse_state(args: list[str]):
+        raise NotImplementedError
 
 
 @dataclass(frozen=True)
 class SkippingRoutingState:
     in_edge: int | None
     current_node: str
+
+    @staticmethod
+    def parse_state(args: list[str]):
+        pass
+# create a method called parse state require string and return skipping routing state
+# factory method
 
 
 class CombinatorialRoutingState:
@@ -51,15 +65,16 @@ class Graph:
 
 
 class RoutingModel(Protocol):
-    def get_out_edge(self, state, failed_edges) -> int | None:
+    def get_out_edge(self, state: State, failed_edges):
         raise NotImplementedError
 
-    def get_direct_previous_states(self, state) -> list[Any]:
+    def get_direct_previous_states(self, state: State):
         raise NotImplementedError
 
-    # TODO add type annotations
-    def infer_edge_states_from_transition(self, s1, s2, required_edges):
+    def infer_edge_states_from_transition(self, s1: State, s2: State, required_edges):
         raise NotImplementedError
+
+    # TODO create a getter function to return the class of the routing model state
 
 
 class SkippingRouting:
@@ -129,10 +144,10 @@ class SkippingRouting:
 
 
 class CombinatorialRouting:
-    def get_out_edge(self, state) -> int | None:
+    def get_out_edge(self, state: CombinatorialRoutingState) -> int | None:
         pass
 
-    def get_direct_previous_states(self, state) -> list[Any] | None:
+    def get_direct_previous_states(self, state: CombinatorialRoutingState) -> list[Any] | None:
         pass
 
     def update_routing_table(self, routing_table: dict[CombinatorialRoutingState, list[int]]) -> None:
@@ -150,7 +165,7 @@ class Network:
         self.graph: Graph = graph
         self.routing_model: RoutingModel = routing_model
 
-    def get_all_paths_to(self, state) -> list[list[Any]]:
+    def get_all_paths_to(self, state) -> Generator[list]:
         def get_all_paths_to_recursive(state, path=None):
             if path is None:
                 path = []
@@ -165,9 +180,9 @@ class Network:
             for direct_previous_state in self.routing_model.get_direct_previous_states(state):
                 yield from get_all_paths_to_recursive(direct_previous_state, path)
 
-        return list(get_all_paths_to_recursive(state))
+        return get_all_paths_to_recursive(state)
 
-    def infer_edges_for_every_path_from_given_state(self, state: SkippingRoutingState):
+    def infer_edges_for_every_path_from_given_state(self, state: State) -> Generator:
         paths = self.get_all_paths_to(state)
         for path in paths:
             required_edges = RequiredEdges()
@@ -201,7 +216,7 @@ def parse_routing_model(graph: Graph, data: dict[str, Any]):
         raise KeyError(f"Routing model named {e} is invalid")
 
 
-def parse_graph(data: dict[str, Any]):
+def parse_graph(data: dict[str, Any]) -> Graph:
     graph = Graph()
     for node in data["nodes"]:
         graph.add_node(node)
@@ -210,11 +225,39 @@ def parse_graph(data: dict[str, Any]):
     return graph
 
 
+def parse_current_state(current_state: str) -> tuple[int, str]:
+    try:
+        state = current_state.split(",")
+        return int(state[0]), state[1]
+    except Exception as e:
+        raise Exception(f"Error during parsing of current state: {e}")
+
+
+def export_json(destination_path: Path, results: Generator) -> None:
+    pass
+
+
+def export_csv(destination_path: Path, results: Generator) -> None:
+    try:
+        with open(destination_path, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow(["Alive edges", "Failed edges"])
+            for result in results:
+                alive_edges = list(result.alive_edges) if result.alive_edges else ""
+                failed_edges = list(result.failed_edges) if result.failed_edges else ""
+                writer.writerow([alive_edges, failed_edges])
+    except Exception as e:
+        raise Exception(f"Error during CSV export: {e}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Global insight tool for local routing models")
-    parser.add_argument("-i", "--input-json", required=True, type=str, help="Add a JSON file as input")
-    parser.add_argument("-e", "--in-edge", required=True, type=int, help="Add in-edge of the state")
-    parser.add_argument("-n", "--current-node", required=True, type=str, help="Add current node of the state")
+    parser.add_argument("-i", "--input-json", required=True, type=str,
+                        help="Add a JSON file as input containing the following values: routing_model, nodes, edge_to_node_mapping and routing_table")  # TODO
+    parser.add_argument("-s", "--current-state", required=True, type=str,
+                        help="Add edge and node of the state to be queried, seperated by a comma")
+    parser.add_argument("-o", "--output", required=True, type=str,
+                        help="Provide destination path and file name with the appropriate extension (.json/.csv) to export results")
     args = parser.parse_args()
     with open(args.input_json, 'r') as file:
         data = json.load(file)
@@ -223,8 +266,21 @@ def main() -> None:
 
     network = Network(graph, routing_model)
 
-    state = SkippingRoutingState(args.in_edge, args.current_node)
-    print(*network.infer_edges_for_every_path_from_given_state(state))
+    in_edge, current_node = parse_current_state(args.current_state)
+    state = SkippingRoutingState(in_edge, current_node)
+
+    results = network.infer_edges_for_every_path_from_given_state(state)
+
+    destination_path = Path(args.output)
+
+    destination_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if destination_path.suffix == ".csv":
+        export_csv(destination_path, results)
+    elif destination_path.suffix == ".json":
+        export_json(destination_path, results)
+    else:
+        raise Exception("Invalid file extension")
 
 
 if __name__ == "__main__":
