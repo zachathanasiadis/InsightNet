@@ -2,9 +2,15 @@ from typing import Any, Protocol, Generator
 from dataclasses import dataclass, field
 from itertools import pairwise
 from pathlib import Path
+from enum import Enum
 import json
 import csv
 import argparse
+
+
+class DataFormat(Enum):
+    JSON = ".json"
+    CSV = ".csv"
 
 
 class State(Protocol):
@@ -236,7 +242,7 @@ def parse_current_state(current_state: str) -> tuple[int, str]:
 def export_json(destination_path: Path, results: Generator) -> None:
     try:
         with open(destination_path, "w", newline="") as f:
-          ...
+            ...
     except Exception as e:
         raise Exception(f"Error during JSON export: {e}")
 
@@ -279,9 +285,9 @@ def main() -> None:
 
     destination_path.parent.mkdir(parents=True, exist_ok=True)
 
-    if destination_path.suffix == ".csv":
+    if destination_path.suffix == DataFormat.CSV.value:
         export_csv(destination_path, results)
-    elif destination_path.suffix == ".json":
+    elif destination_path.suffix == DataFormat.JSON.value:
         export_json(destination_path, results)
     else:
         raise Exception("Invalid file extension")
