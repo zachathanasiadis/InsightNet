@@ -1,0 +1,18 @@
+{
+  "routing_model": "Skipping Routing",
+  "nodes": ["A", "B", "C"],
+  "edge_to_node_mapping": [
+    { "edge": 1, "nodes": ["A", "C"] },
+    { "edge": 2, "nodes": ["A", "B"] },
+    { "edge": 3, "nodes": ["B", "C"] }
+  ],
+  "routing_table": [
+    { "in_edge": null, "node": "A", "out_edges": [1, 2] },
+    { "in_edge": 2, "node": "A", "out_edges": [1, 2] },
+    { "in_edge": null, "node": "B", "out_edges": [3, 2] },
+    { "in_edge": 2, "node": "B", "out_edges": [3, 2] },
+    { "in_edge": 3, "node": "B", "out_edges": [2, 3] },
+    { "in_edge": null, "node": "C", "out_edges": [1, 3] },
+    { "in_edge": 3, "node": "C", "out_edges": [1, 3] }
+  ]
+}

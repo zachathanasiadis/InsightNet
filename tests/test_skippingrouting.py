@@ -1,4 +1,4 @@
-from main import SkippingRouting, SkippingRoutingState, Graph
+from insightnet.core import SkippingRouting, SkippingRoutingState, Graph
 import pytest
 
 
@@ -75,12 +75,12 @@ def test_update_routing_table_edge_not_connected_to_state_exception(sr_without_r
         sr_without_routing_table.update_routing_table(routing_table)
 
 
+# TODO have at least one test case where you return an edge at a later position
 def test_get_out_edge(sr_without_routing_table):
     routing_table = {SkippingRoutingState(1, "v1"): [1]}
 
     sr_without_routing_table.update_routing_table(routing_table)
-    assert sr_without_routing_table.get_out_edge(
-        SkippingRoutingState(1, "v1")) == 1
+    assert sr_without_routing_table.get_out_edge(SkippingRoutingState(1, "v1")) == 1
 
 
 def test_get_out_edge_returns_None(sr_without_routing_table):

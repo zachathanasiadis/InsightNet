@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "insightnet"
+version = "0.1.0"
+description = "Global insight tool for local routing models."
+authors = ["Zacharias Athanasiadis <zachathanasiadis@gmail.com>"]
+packages = [
+    { include = "insightnet", from = "src" }
+]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.13"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.4.1"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

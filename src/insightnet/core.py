@@ -234,7 +234,11 @@ def parse_current_state(current_state: str) -> tuple[int, str]:
 
 
 def export_json(destination_path: Path, results: Generator) -> None:
-    pass
+    try:
+        with open(destination_path, "w", newline="") as f:
+          ...
+    except Exception as e:
+        raise Exception(f"Error during JSON export: {e}")
 
 
 def export_csv(destination_path: Path, results: Generator) -> None:

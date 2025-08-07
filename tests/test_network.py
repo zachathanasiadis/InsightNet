@@ -1,4 +1,4 @@
-from main import Graph, SkippingRouting, SkippingRoutingState, Network
+from insightnet.core import Graph, SkippingRouting, SkippingRoutingState, Network
 import pytest
 
 
@@ -25,7 +25,7 @@ def network_sr():
 
 def test_skipping_routing_get_all_paths_to(network_sr):
     state = SkippingRoutingState(1, "v1")
-    paths = network_sr.get_all_paths_to(state)
+    paths = list(network_sr.get_all_paths_to(state))
 
     expected_result = [[SkippingRoutingState(in_edge=1, current_node='v1'), SkippingRoutingState(in_edge=None, current_node='v2')],
                        [SkippingRoutingState(in_edge=1, current_node='v1'), SkippingRoutingState(in_edge=1, current_node='v2'),
