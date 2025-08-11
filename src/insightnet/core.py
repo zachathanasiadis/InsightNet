@@ -194,7 +194,7 @@ class Network:
             required_edges = RequiredEdges()
             for s1, s2 in pairwise(path):
                 self.routing_model.infer_edge_states_from_transition(s1, s2, required_edges)
-            yield required_edges
+            yield path, required_edges
 
 
 model_parsers = dict()
@@ -242,7 +242,19 @@ def parse_current_state(current_state: str) -> tuple[int, str]:
 def export_json(destination_path: Path, results: Generator) -> None:
     try:
         with open(destination_path, "w", newline="") as f:
-            ...
+            f.write('{"results": [\n')
+            first_entry = True
+            for path, result in results:
+                if not first_entry:
+                    f.write(",\n")
+                else:
+                    first_entry = False
+                formatted_path = [(state.in_edge, state.current_node) for state in path]
+                alive_edges = list(result.alive_edges) if result.alive_edges else ""
+                failed_edges = list(result.failed_edges) if result.failed_edges else ""
+                res = {"path": formatted_path, "alive_edges": alive_edges, "failed_edges": failed_edges}
+                json.dump(res, f)
+            f.write("\n]\n}")
     except Exception as e:
         raise Exception(f"Error during JSON export: {e}")
 
@@ -251,11 +263,12 @@ def export_csv(destination_path: Path, results: Generator) -> None:
     try:
         with open(destination_path, "w", newline="") as f:
             writer = csv.writer(f)
-            writer.writerow(["Alive edges", "Failed edges"])
-            for result in results:
+            writer.writerow(["path", "alive_edges", "failed_edges"])
+            for path, result in results:
+                formatted_path = [(state.in_edge, state.current_node) for state in path]
                 alive_edges = list(result.alive_edges) if result.alive_edges else ""
                 failed_edges = list(result.failed_edges) if result.failed_edges else ""
-                writer.writerow([alive_edges, failed_edges])
+                writer.writerow([formatted_path, alive_edges, failed_edges])
     except Exception as e:
         raise Exception(f"Error during CSV export: {e}")
 
