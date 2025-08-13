@@ -15,7 +15,7 @@ class DataFormat(Enum):
 
 class State(Protocol):
     @staticmethod
-    def parse_state(args: list[str]):
+    def parse_state(current_state: str):
         raise NotImplementedError
 
 
@@ -25,10 +25,12 @@ class SkippingRoutingState:
     current_node: str
 
     @staticmethod
-    def parse_state(args: list[str]):
-        pass
-# create a method called parse state require string and return skipping routing state
-# factory method
+    def parse_state(current_state: str):
+        try:
+            state = current_state.split(",")
+            return SkippingRoutingState(int(state[0]), state[1])
+        except Exception as e:
+            raise Exception(f"Error during parsing of current state: {e}")
 
 
 class CombinatorialRoutingState:
@@ -80,7 +82,8 @@ class RoutingModel(Protocol):
     def infer_edge_states_from_transition(self, s1: State, s2: State, required_edges):
         raise NotImplementedError
 
-    # TODO create a getter function to return the class of the routing model state
+    def get_state_class(self):
+        raise NotImplementedError
 
 
 class SkippingRouting:
@@ -148,6 +151,9 @@ class SkippingRouting:
             else:
                 required_edges.failed_edges.add(edge)
 
+    def get_state_class(self):
+        return SkippingRoutingState
+
 
 class CombinatorialRouting:
     def get_out_edge(self, state: CombinatorialRoutingState) -> int | None:
@@ -196,6 +202,15 @@ class Network:
                 self.routing_model.infer_edge_states_from_transition(s1, s2, required_edges)
             yield path, required_edges
 
+    def get_aggregate_network_results(self) -> dict[str, dict[str, float]]:
+        results = dict()
+        for edge in self.graph.edges:
+            results[edge] = {"alive_percentage": None, "failure_percentage": None, "unknown_percentage": None}
+        return results
+
+    def visualize_results(self) -> None:
+        pass
+
 
 model_parsers = dict()
 
@@ -242,7 +257,7 @@ def parse_current_state(current_state: str) -> tuple[int, str]:
 def export_json(destination_path: Path, results: Generator) -> None:
     try:
         with open(destination_path, "w", newline="") as f:
-            f.write('{"results": [\n')
+            f.write('{\n"results": [\n')
             first_entry = True
             for path, result in results:
                 if not first_entry:
@@ -289,8 +304,7 @@ def main() -> None:
 
     network = Network(graph, routing_model)
 
-    in_edge, current_node = parse_current_state(args.current_state)
-    state = SkippingRoutingState(in_edge, current_node)
+    state = routing_model.get_state_class().parse_state(args.current_state)
 
     results = network.infer_edges_for_every_path_from_given_state(state)
 
