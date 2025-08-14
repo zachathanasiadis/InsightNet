@@ -6,6 +6,7 @@ from enum import Enum
 import json
 import csv
 import argparse
+import pydot
 
 
 class DataFormat(Enum):
@@ -73,13 +74,13 @@ class Graph:
 
 
 class RoutingModel(Protocol):
-    def get_out_edge(self, state: State, failed_edges):
+    def get_out_edge(self, state: State, failed_edges: list[int] | None = None):
         raise NotImplementedError
 
     def get_direct_previous_states(self, state: State):
         raise NotImplementedError
 
-    def infer_edge_states_from_transition(self, s1: State, s2: State, required_edges):
+    def infer_edge_states_from_transition(self, s1: State, s2: State, required_edges: RequiredEdges):
         raise NotImplementedError
 
     def get_state_class(self):
@@ -246,12 +247,25 @@ def parse_graph(data: dict[str, Any]) -> Graph:
     return graph
 
 
-def parse_current_state(current_state: str) -> tuple[int, str]:
+def build_dot_graph(graph: Graph) -> pydot.Dot:
+    dot_graph = pydot.Dot(graph_type="graph")
+    dot_graph.set_graph_defaults(rankdir="LR")
+    for node in graph.get_nodes():
+        dot_graph.add_node(pydot.Node(node))
+    for edge, nodes in graph.get_edge_to_node_mapping().items():
+        dot_graph.add_edge(pydot.Edge(nodes[0], nodes[1], label=edge))
+    return dot_graph
+
+
+def generate_dot_file(dot_graph: pydot.Dot) -> None:
+    dot_graph.write("graph.dot")
+
+
+def generate_graph_image(dot_graph: pydot.Dot):
     try:
-        state = current_state.split(",")
-        return int(state[0]), state[1]
+        dot_graph.write("graph.png", format="png")
     except Exception as e:
-        raise Exception(f"Error during parsing of current state: {e}")
+        raise Exception(e)
 
 
 def export_json(destination_path: Path, results: Generator) -> None:
@@ -318,6 +332,10 @@ def main() -> None:
         export_json(destination_path, results)
     else:
         raise Exception("Invalid file extension")
+
+    dot_graph = build_dot_graph(graph)
+    generate_dot_file(dot_graph)
+    generate_graph_image(dot_graph)
 
 
 if __name__ == "__main__":
