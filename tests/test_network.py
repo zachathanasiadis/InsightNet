@@ -1,5 +1,9 @@
-from insightnet.core import Graph, SkippingRouting, SkippingRoutingState, Network
 import pytest
+from typing import cast
+from insightnet.graph import Graph
+from insightnet.routing_model import RoutingModel, SkippingRouting
+from insightnet.state import SkippingRoutingState
+from insightnet.network import Network
 
 
 @pytest.fixture
@@ -19,7 +23,7 @@ def network_sr():
     skipping_routing = SkippingRouting(graph)
     skipping_routing.update_routing_table(routing_table)
     skipping_routing = SkippingRouting(graph, routing_table)
-    n = Network(graph, skipping_routing)
+    n = Network(graph, cast(RoutingModel, skipping_routing))
     return n
 
 

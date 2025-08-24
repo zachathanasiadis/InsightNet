@@ -1,4 +1,5 @@
-from insightnet.core import SkippingRouting, SkippingRoutingState, Graph
+from insightnet.routing_model import SkippingRouting, SkippingRoutingState
+from insightnet.graph import Graph
 import pytest
 
 

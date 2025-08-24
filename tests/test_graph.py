@@ -1,4 +1,4 @@
-from insightnet.core import Graph
+from insightnet.graph import Graph
 import pytest
 
 
