@@ -10,7 +10,7 @@ class Network:
         self.graph: Graph = graph
         self.routing_model: RoutingModel = routing_model
 
-    def get_all_paths_to(self, state) -> Generator[list]:
+    def get_all_paths_to(self, state) -> Generator[list, None, None]:
         def get_all_paths_to_recursive(state, path=None):
             if path is None:
                 path = []
@@ -27,7 +27,7 @@ class Network:
 
         return get_all_paths_to_recursive(state)
 
-    def infer_edges_for_every_path_from_given_state(self, state: State) -> Generator:
+    def infer_edges_for_every_path_from_given_state(self, state: State) -> Generator[tuple[list, RequiredEdges], None, None]:
         paths = self.get_all_paths_to(state)
         for path in paths:
             required_edges = RequiredEdges()
