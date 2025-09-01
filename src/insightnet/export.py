@@ -2,6 +2,8 @@ from pathlib import Path
 from typing import Generator
 import json
 import csv
+import pydot
+from .graph import Graph
 
 
 def export_json(destination_path: Path, results: Generator) -> None:
@@ -49,3 +51,32 @@ def export_jsonl(destination_path: Path, results: Generator) -> None:
                 f.write(json.dumps(res) + "\n")
     except Exception as e:
         raise Exception(f"Error during JSONL export: {e}")
+
+
+def export_dot(graph: Graph, destination_path: Path, results: dict[int, dict[str, float]]) -> None:
+    dot_graph = pydot.Dot(graph_type="graph")
+    dot_graph.set_graph_defaults(rankdir="LR")
+    for node in graph.get_nodes():
+        dot_graph.add_node(pydot.Node(node))
+    for edge, nodes in graph.get_edge_to_node_mapping().items():
+        edge_result = results.get(edge, {})
+        dominant = max(edge_result.keys(), key=lambda k: edge_result[k])
+        color = {"alive_percentage": "green", "failure_percentage": "red", "unknown_percentage": "gray"}.get(dominant, "black")
+
+        dot_graph.add_edge(pydot.Edge(nodes[0], nodes[1], label=str(edge), color=color, fontcolor=color))
+
+    legend = pydot.Subgraph("legend", label="Legend", style="dashed")
+
+    color_legend = """<
+    <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0">
+        <TR><TD><FONT COLOR="green">Mostly Alive</FONT></TD></TR>
+        <TR><TD><FONT COLOR="red">Mostly Failed</FONT></TD></TR>
+        <TR><TD><FONT COLOR="gray">Mostly Unknown</FONT></TD></TR>
+    </TABLE>
+    >"""
+
+    legend.add_node(pydot.Node("legend_colors", shape="none", label=color_legend))
+
+    dot_graph.add_subgraph(legend)
+
+    dot_graph.write(str(destination_path))

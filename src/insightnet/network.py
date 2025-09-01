@@ -35,8 +35,27 @@ class Network:
                 self.routing_model.infer_edge_states_from_transition(s1, s2, required_edges)
             yield path, required_edges
 
-    def get_aggregate_network_results(self) -> dict[str, dict[str, float]]:
-        results = dict()
-        for edge in self.graph.edges:
-            results[edge] = {"alive_percentage": None, "failure_percentage": None, "unknown_percentage": None}
+    def get_aggregate_network_results(self, state: State) -> dict[int, dict[str, float]]:
+        edge_count = dict()
+        for edge in self.graph.get_edges():
+            edge_count[edge] = {"alive_count": 0, "failed_count": 0, "unknown_count": 0}
+
+        for _, scenario in self.infer_edges_for_every_path_from_given_state(state):
+            for edge in edge_count.keys():
+                if edge in scenario.alive_edges:
+                    edge_count[edge]["alive_count"] += 1
+                elif edge in scenario.failed_edges:
+                    edge_count[edge]["failed_count"] += 1
+                else:
+                    edge_count[edge]["unknown_count"] += 1
+
+        results = {}
+        for edge, counts in edge_count.items():
+            total = counts["alive_count"] + counts["failed_count"] + counts["unknown_count"]
+            if total == 0:
+                results[edge] = {"alive_percentage": 0.0, "failure_percentage": 0.0, "unknown_percentage": 0.0}
+            else:
+                results[edge] = {"alive_percentage": counts["alive_count"] / total * 100, "failure_percentage":
+                                 counts["failed_count"] / total * 100, "unknown_percentage": counts["unknown_count"] / total * 100}
+
         return results
