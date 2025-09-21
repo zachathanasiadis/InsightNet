@@ -1,0 +1,47 @@
+name: CI
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+        branches: [main]
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+
+        strategy:
+            fail-fast: false
+            matrix:
+                python-version: ["3.6", "3.7", "3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Set up Python ${{ matrix.python-version }}
+              uses: actions/setup-python@v5
+              with:
+                python-version: ${{ matrix.python-version }}
+
+            - name: Install Poetry
+              run: pip install poetry poetry-plugin-export
+
+            - name: Export requirements.txt from Poetry
+              run: poetry export -f requirements.txt --without-hashes --output requirements.txt
+
+            - name: Install dependencies
+              run: pip install -r requirements.txt
+
+            - name: Install project
+              run: pip install -e .
+
+            - name: Install autopep8 and Ruff
+              run: pip install autopep8 ruff
+
+            - name: Check code style with autopep8
+              run: autopep8 --recursive --diff src tests
+
+            - name: Lint with Ruff
+              run: ruff check src tests
+
+            - name: Run tests
+              run: pytest tests
