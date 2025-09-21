@@ -8,7 +8,7 @@ model_parsers: dict = dict()
 
 def parse_routing_model(graph: Graph, data: dict[str, Any]):
     if data["routing_model"] not in model_parsers:
-        raise KeyError(f"Routing model named {data["routing_model"]} is invalid")
+        raise KeyError(f"Routing model named {data['routing_model']} is invalid")
     try:
         return model_parsers[data["routing_model"]](graph, data)
     except Exception as e:
