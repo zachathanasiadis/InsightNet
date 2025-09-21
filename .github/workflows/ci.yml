@@ -34,8 +34,14 @@ jobs:
             - name: Install project
               run: pip install -e .
 
-            - name: Install autopep8 and Ruff
-              run: pip install autopep8 ruff
+            - name: Install mypy, bandit, autopep8 and Ruff
+              run: pip install mypy bandit autopep8 ruff
+
+            - name: Static type checking with mypy
+              run: mypy src tests
+
+            - name: Security analysis with bandit
+              run: bandit -r src
 
             - name: Check code style with autopep8
               run: autopep8 --recursive --diff src tests
