@@ -3,7 +3,7 @@ from .state import SkippingRoutingState
 from .graph import Graph
 from typing import Any
 
-model_parsers = dict()
+model_parsers: dict = dict()
 
 
 def parse_routing_model(graph: Graph, data: dict[str, Any]):

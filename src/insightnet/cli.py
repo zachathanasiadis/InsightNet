@@ -35,10 +35,10 @@ def main() -> None:
     state = routing_model.get_state_class().parse_state(args.current_state)
 
     if destination_path.suffix == DataFormat.DOT.value:
-        results = network.get_aggregate_network_results(state)
-        export_dot(graph, destination_path, results)
+        dot_results = network.get_aggregate_network_results(state)
+        export_dot(graph, destination_path, dot_results)
     else:
-        results = network.infer_edges_for_every_path_from_given_state(state)
+        results  = network.infer_edges_for_every_path_from_given_state(state)
         if destination_path.suffix == DataFormat.CSV.value:
             export_csv(destination_path, results)
         elif destination_path.suffix == DataFormat.JSON.value:

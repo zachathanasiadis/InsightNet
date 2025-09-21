@@ -34,7 +34,6 @@ class SkippingRouting:
 
     def get_direct_previous_states(self, state: SkippingRoutingState) -> list[SkippingRoutingState]:
         previous_states = []
-        nodes_connected_to_edge = []
         if state.in_edge is None:
             return []
         # Finding previous node
