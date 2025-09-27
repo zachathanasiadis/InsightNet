@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from .graph_parser import parse_graph
 from .routing_model_parser import parse_routing_model
 from .network import Network
+from typing import Any
 
 app = FastAPI()
 
@@ -16,7 +17,7 @@ class RoutingRequest(BaseModel):
     routing_model: str
     nodes: list[str]
     edge_to_node_mapping: list[EdgeMapping]
-    routing_table: list
+    routing_table: list[dict[str, Any]]
     current_state: str
 
 
