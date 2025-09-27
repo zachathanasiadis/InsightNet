@@ -92,10 +92,7 @@ The API will be available at [http://localhost:8000](http://localhost:8000).
 - `edge_to_node_mapping` *(list)*: Each item specifies an edge and the nodes it connects:
   - `edge` *(int)*: Edge identifier.
   - `nodes` *(list of strings)*: Nodes connected by this edge.
-- `routing_table` *(list)*: Each item specifies the routing rules for a node:
-  - `in_edge` *(int or null)*: Incoming edge.
-  - `node` *(string)*: Node name.
-  - `out_edges` *(list of ints)*: Outgoing edges.
+- `routing_table` *(list)*: Each item specifies the routing rules for a node.
 - `current_state` *(string)*: State to be queried, formatted as `"edge,node"`.
 
 ### Example

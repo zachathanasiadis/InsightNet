@@ -12,17 +12,11 @@ class EdgeMapping(BaseModel):
     nodes: list[str]
 
 
-class RoutingTableEntry(BaseModel):
-    in_edge: int | None
-    node: str
-    out_edges: list[int]
-
-
 class RoutingRequest(BaseModel):
     routing_model: str
     nodes: list[str]
     edge_to_node_mapping: list[EdgeMapping]
-    routing_table: list[RoutingTableEntry]
+    routing_table: list
     current_state: str
 
 
