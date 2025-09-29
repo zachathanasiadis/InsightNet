@@ -1,9 +1,0 @@
-graph G {
-graph [rankdir=LR];
-A;
-B;
-C;
-A -- C [label=1];
-A -- B [label=2];
-B -- C [label=3];
-}
