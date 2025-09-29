@@ -5,7 +5,7 @@ A global insight tool for local routing models. It offers both a CLI and an API,
 ## Getting Started
 
 ### Prerequisites
-- Python 3.9+
+- Python 3.10+
 - [Poetry](https://python-poetry.org/)
 - [Docker](https://www.docker.com/)
 
@@ -50,7 +50,7 @@ python -m insightnet \
 - `edge_to_node_mapping` *(list)*: Each item specifies an edge and the nodes it connects:
   - `edge` *(int)*: Edge identifier.
   - `nodes` *(list of strings)*: Nodes connected by this edge.
-- `routing_table` *(list)*: Each item specifies the routing rules for a node.
+- `routing_table` *(list of dictionaries)*: Each item specifies the routing rules for a node.
 
 ### Example
 **Example Command:**
@@ -92,7 +92,7 @@ The API will be available at [http://localhost:8000](http://localhost:8000).
 - `edge_to_node_mapping` *(list)*: Each item specifies an edge and the nodes it connects:
   - `edge` *(int)*: Edge identifier.
   - `nodes` *(list of strings)*: Nodes connected by this edge.
-- `routing_table` *(list)*: Each item specifies the routing rules for a node.
+- `routing_table` *(list of dictionaries)*: Each item specifies the routing rules for a node.
 - `current_state` *(string)*: State to be queried, formatted as `"edge,node"`.
 
 ### Example
