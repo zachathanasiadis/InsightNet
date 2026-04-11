@@ -76,7 +76,6 @@ def test_update_routing_table_edge_not_connected_to_state_exception(sr_without_r
         sr_without_routing_table.update_routing_table(routing_table)
 
 
-# TODO have at least one test case where you return an edge at a later position
 def test_get_out_edge(sr_without_routing_table):
     routing_table = {SkippingRoutingState(1, "v1"): [1]}
 

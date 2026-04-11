@@ -2,7 +2,6 @@ from insightnet.graph import Graph
 import pytest
 
 
-# TODO Create multiple fixtures for other common graphs in other test cases.
 @pytest.fixture
 def empty_graph():
     graph = Graph()
@@ -16,7 +15,6 @@ def test_add_node_and_get_nodes(empty_graph):
 
 def test_add_edge_and_get_edges_and_edge_to_node_mapping(empty_graph):
     empty_graph.add_edge(0, "v1", "v2")
-    # Why create a new "spy" function to get this information? There is get_endpoints_of.
     assert empty_graph.get_edge_to_node_mapping()[0] == ("v1", "v2") and 0 in empty_graph.get_edges()
 
 
