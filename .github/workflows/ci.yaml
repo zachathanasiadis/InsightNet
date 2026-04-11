@@ -17,7 +17,8 @@ on:
           - "Dockerfile"
           - "pyproject.toml"
           - "poetry.lock"
-
+    workflow_dispatch:
+  
 jobs:
     test:
         runs-on: ubuntu-latest
