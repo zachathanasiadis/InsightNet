@@ -2,7 +2,6 @@ name: CI
 
 on:
     push:
-        branches: [main]
         paths:
           - "src/**"
           - "tests/**"
@@ -10,7 +9,6 @@ on:
           - "pyproject.toml"
           - "poetry.lock"
     pull_request:
-        branches: [main]
         paths:
           - "src/**"
           - "tests/**"
@@ -18,7 +16,7 @@ on:
           - "pyproject.toml"
           - "poetry.lock"
     workflow_dispatch:
-  
+
 jobs:
     test:
         runs-on: ubuntu-latest
@@ -26,37 +24,56 @@ jobs:
         steps:
             - uses: actions/checkout@v4
 
-            - name: Set up Python ${{ matrix.python-version }}
+            - name: Set up Python
               uses: actions/setup-python@v5
               with:
                 python-version: "3.13"
 
             - name: Install Poetry
-              run: pip install poetry poetry-plugin-export
+              run: pip install poetry 
 
-            - name: Export requirements.txt from Poetry
-              run: poetry export -f requirements.txt --without-hashes --output requirements.txt --with dev
+            - name: Configure Poetry
+              run: poetry config virtualenvs.create false
 
             - name: Install dependencies
-              run: pip install -r requirements.txt
-
-            - name: Install project
-              run: pip install -e .
-
-            - name: Install mypy, bandit, autopep8 and Ruff
-              run: pip install mypy bandit autopep8 ruff
+              run: poetry install --with dev
 
             - name: Static type checking with mypy
-              run: mypy src tests
+              run: poetry run mypy src tests
 
             - name: Security analysis with bandit (report MEDIUM+ severity and confidence)
-              run: bandit -r src -ll -ii
+              run: poetry run bandit -r src -ll -ii
 
             - name: Check code style with autopep8
-              run: autopep8 --recursive --diff src tests
+              run: poetry run autopep8 --recursive --diff src tests
 
             - name: Lint with Ruff
-              run: ruff check src tests
+              run: poetry run ruff check src tests
 
             - name: Run tests
-              run: pytest tests
+              run: poetry run pytest tests
+
+    docker:
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        needs: test
+        runs-on: ubuntu-latest
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Set short SHA
+              run: echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
+
+            - name: Login to Docker Hub
+              uses: docker/login-action@v4
+              with:
+                username: zachathanasiadis
+                password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+            - name: Build and push
+              uses: docker/build-push-action@v7
+              with:
+                push: true
+                tags: |
+                 zachathanasiadis/cc:insightnet-latest
+                 zachathanasiadis/cc:insightnet-${{ env.SHORT_SHA }}
