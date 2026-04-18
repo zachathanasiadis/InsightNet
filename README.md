@@ -1,6 +1,6 @@
 # InsightNet
 
-InsightNet is a Python-based tool for analyzing local routing models by inferring the global state of a network and listing all possible alive/failed edge combinations for a given local state. It includes both a CLI and an API, supports multiple output formats (CSV, JSON, JSONL, DOT), and is containerized with Docker for easy deployment and reproducibility.
+InsightNet is a Python-based tool for analyzing routing models in network topologies by enumerating all valid forwarding paths under different link failure configurations. It models per-node routing behavior and systematically explores all reachable outcomes using graph traversal techniques. It includes both a CLI and an API, supports multiple output formats (CSV, JSON, JSONL, DOT), and is containerized with Docker for easy deployment and reproducibility.
 
 ## Getting Started
 
