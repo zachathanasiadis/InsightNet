@@ -20,6 +20,10 @@ class RoutingRequest(BaseModel):
     routing_table: list[dict[str, Any]]
     current_state: str
 
+@app.get("/health")
+def health_check():
+    return {"message": "InsightNet is running"}
+
 
 @app.post("/infer")
 def infer(request: RoutingRequest):
