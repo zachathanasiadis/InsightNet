@@ -42,4 +42,11 @@ resource "azurerm_container_app" "app" {
       latest_revision = true
     }
   }
+
+}
+
+resource "azurerm_role_assignment" "github_deploy" {
+  scope                = azurerm_resource_group.rg.id
+  role_definition_name = "Contributor"
+  principal_id         = var.github_sp_object_id
 }
