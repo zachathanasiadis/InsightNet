@@ -26,7 +26,7 @@ resource "azurerm_container_app" "app" {
 
   template {
     container {
-      name   = "hitl-container"
+      name   = "insightnet-container"
       image  = "docker.io/zachathanasiadis/cc:insightnet-latest"
       cpu    = 0.25
       memory = "0.5Gi"
