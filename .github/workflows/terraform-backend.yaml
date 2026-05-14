@@ -1,0 +1,106 @@
+name: Terraform Backend CI/CD
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "terraform/backend/**"
+  pull_request:
+    paths:
+      - "terraform/backend/**"
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Azure Login
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Terraform Init
+        working-directory: terraform/backend
+        run: terraform init -input=false
+
+      - name: Terraform fmt
+        working-directory: terraform/backend
+        run: terraform fmt -check -recursive
+
+      - name: Terraform validate
+        working-directory: terraform/backend
+        run: terraform validate
+
+  plan:
+    needs: check
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Azure Login
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Terraform Init
+        working-directory: terraform/backend
+        run: terraform init -input=false
+      - name: Terraform Plan
+        working-directory: terraform/backend
+        run: terraform plan -input=false -out=tfplan
+
+      - name: Upload Plan Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-tfplan
+          path: terraform/backend/tfplan
+
+  apply:
+    needs: plan
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    environment:
+      name: terraform-backend-prod
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Azure Login
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Terraform Init
+        working-directory: terraform/backend
+        run: terraform init -input=false
+
+      - name: Download Plan Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-tfplan
+          path: terraform/backend
+
+      - name: Terraform Apply
+        working-directory: terraform/backend
+        run: terraform apply -input=false tfplan
