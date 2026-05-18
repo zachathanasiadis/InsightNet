@@ -44,11 +44,3 @@ resource "azurerm_container_app" "app" {
   }
 
 }
-
-data "azurerm_client_config" "current" {}
-
-resource "azurerm_role_assignment" "github_cd" {
-  scope                = azurerm_resource_group.rg.id
-  role_definition_name = "Container Apps Contributor"
-  principal_id         = data.azurerm_client_config.current.object_id
-}
