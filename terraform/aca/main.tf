@@ -45,8 +45,10 @@ resource "azurerm_container_app" "app" {
 
 }
 
-resource "azurerm_role_assignment" "github_deploy" {
+data "azurerm_client_config" "current" {}
+
+resource "azurerm_role_assignment" "github_cd" {
   scope                = azurerm_resource_group.rg.id
-  role_definition_name = "Contributor"
-  principal_id         = var.github_sp_object_id
+  role_definition_name = "Container Apps Contributor"
+  principal_id         = data.azurerm_client_config.current.object_id
 }
