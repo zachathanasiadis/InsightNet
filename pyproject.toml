@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "insightnet"
 version = "0.1.0"
-description = "Global insight tool for local routing models."
+description = "Routing analysis tool for evaluating local fast rerouting (FRR) behavior in network topologies"
 authors = ["Zacharias Athanasiadis <zachathanasiadis@gmail.com>"]
 packages = [
     { include = "insightnet", from = "src" }
